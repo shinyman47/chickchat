@@ -1,19 +1,23 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include "udpsocket.h"
+#include "udpclient.h"
+#include <QtQml>
 
 int main(int argc, char *argv[])
 {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
     QGuiApplication app(argc, argv);
+    qmlRegisterType<UdpClient>("client", 1, 0, "UdpClient");
+
 
     QQmlApplicationEngine engine;
-   // UdpSocket* socket=new UdpSocket();
-   // engine.rootContext()->setContextObject(socket);
+    UdpClient* client=new UdpClient();
 
-    qmlRegisterType<UdpSocket>("UdpSocket", 1, 0, "UdpSocket");
+    engine.rootContext()->setContextObject(client);
+    //QScopedPointer<UdpClient> udpclient (new UdpClient);
+    //engine.rootContext()->setContextProperty("udpclient", udpclient.data());
 
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
     if (engine.rootObjects().isEmpty())

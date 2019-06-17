@@ -39,7 +39,7 @@ Item {
 
                 loginCom.visible=false;
                 // when login success
-                client.test();
+                
                 client.setName(username.text);
                 client.socketSetting();
 

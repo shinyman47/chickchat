@@ -1,13 +1,15 @@
 import QtQuick 2.6
 import QtQuick.Window 2.2
-import UdpSocket 1.0
+import client 1.0
+
+
 Window {
     id:root
     visible: true
     width: 380
     height: 600
-    title: qsTr("Chat")
-    property var currentPage: null
+    title: qsTr("ChickenChat")
+    property var currentPage:null
     property bool hasLogin: false
 
     Component.onCompleted: {
@@ -21,12 +23,13 @@ Window {
     }
 
     function onLogin(name){
-
         hasLogin=true;
         currentPage.destroy()
         //@ show home page
-        var chat=Qt.createComponent("chat.qml");
-        currentPage=chat.createObject(root);
+        var home=Qt.createComponent("chat.qml");
+        currentPage=home.createObject(root,{
+                                          "username":name
+                                      });
 
     }
 }
