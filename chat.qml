@@ -2,8 +2,6 @@ import QtQuick 2.6
 import QtQuick.Controls 2.2
 import QtQuick.Controls.Material 2.2
 import client 1.0
-
-
 Item {
     id:chatCom
     anchors.fill: parent
@@ -12,19 +10,9 @@ Item {
    // property alias friendName: username.text
    // property string frindIpv4: ""
     property var newMsgs: []
-
-    Connections{
-        target: UdpClient
-              onSignalMsg: {
-    newMsgs = newMsgs.concat({text: msg, ip: ipAddr, msg_user_name: usrName})
-    }
-    }
-
     UdpClient{
         id:client
-
     }
-
     /*Component.onCompleted: {
         onUpdateChatView.connect(toEnd);
         function toEnd(){
@@ -38,7 +26,6 @@ Item {
         color: "white"
         z:-1
     }
-
     Column{
         spacing: 4
         anchors.fill:parent
@@ -77,8 +64,10 @@ Item {
             }
         }
         ListView{
+            spacing: 8
             //chat record
             id:charView
+            model: 1
             height: 400
             clip: true;
             width: parent.width
@@ -92,22 +81,35 @@ Item {
                 id:chatDelegate
 
                 Rectangle{
+                    //color: "red"
                     width: parent.width-20
                     anchors.horizontalCenter: parent.horizontalCenter
                     height: childrenRect.height
-                    Label {
+                    Text {
                         id:textContent
-                        text: newMsgs.text
+                        //text: "hello"
+                        color: "black"
+                        //text: newMsgs.text
                         width: parent.width-40
                         font.pointSize: 13
                         wrapMode: Text.WrapAnywhere
-                        Component.onCompleted: {
+                        /*Component.onCompleted: {
                             if(direction==true){
                                 //是我发送的文字
                                 textContent.horizontalAlignment=Text.AlignRight;
                                 textContent.anchors.right=parent.right
                             }
+                        }*/
+                        Connections{
+                            target: client
+                                  onSignalMsg: {
+                                      textContent.text=ipAddr
+                                      //usrname.text=msg
+                                      newMsgs = newMsgs.concat({text: msg, ip: ipAddr, msg_user_name: usrName})
+                                      //console.debug("success");
                         }
+                        }
+
                     }
                 }
             }//chatDelegate-end
@@ -125,7 +127,6 @@ Item {
 
                 KeyNavigation.priority: KeyNavigation.BeforeItem;
                 KeyNavigation.tab: btn_send;
-
             }
             Button{
                 id:btn_send
@@ -146,7 +147,7 @@ Item {
                     //}
                     //getMsg(send_content.text);
                     var type = 0
-                    client.sndMsg(send_content.text);//send
+                    client.sndMsg(client.Msg,send_content.text);//send
                     send_content.text="";
                     send_content.focus=true;
                     //charView.positionViewAtEnd();
@@ -178,8 +179,7 @@ Item {
                                       );
                 }
             }
-        }
-
+       }
     }
 }
 

@@ -1,5 +1,5 @@
-#ifndef SOCKETSETTING_H
-#define SOCKETSETTING_H
+#ifndef UDPCLIENT_H
+#define UDPCLIENT_H
 
 #include<QObject>
 #include<QUdpSocket>
@@ -8,26 +8,23 @@
 #include<QTcpSocket>
 //#include<QFile>
 #include<QString>
-
-
-
-
+#include<string>
 
 class UdpClient :public QObject
 {
     Q_OBJECT
     //Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
-
+    Q_ENUMS(MsgType)
 public:
 
-    UdpClient();
-    Q_INVOKABLE enum MsgType{Msg, UsrEnter, UsrLeft, FileName, Refuse};
+    UdpClient(QObject *parent = nullptr);
+                enum MsgType{Msg, UsrEnter, UsrLeft, FileName, Refuse};
     Q_INVOKABLE void test();
-    Q_INVOKABLE void socketSetting();
+    //Q_INVOKABLE void socketSetting();
     Q_INVOKABLE void setName(QString nekename);
     //Q_INVOKABLE void UsrEnter(QString usrName, QString ipAddr);
    // Q_INVOKABLE void usrLeft(QString usrName, QString time);
-    Q_INVOKABLE void sndMsg(QString msg);
+    Q_INVOKABLE void sndMsg(MsgType type,QString msg);
     Q_INVOKABLE QString getIP();
     Q_INVOKABLE QString getUsr();
    // Q_INVOKABLE QString getMsg(QString msg);
@@ -49,4 +46,4 @@ private slots:
 };
 
 
-#endif // SOCKETSETTING_H
+#endif // UDPCLIENT_H

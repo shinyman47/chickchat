@@ -36,17 +36,13 @@ Item {
                     console.log("empty input")
                     return
                 }
-
                 loginCom.visible=false;
                 // when login success
                 client.test();
                 client.setName(username.text);
-                client.socketSetting();
-
+                //client.socketSetting();
                 //UsrEnter();
                 //sendMsg(UsrEnter);
-
-
                 //@ emit login signal,to delete this Component
                 loginCom.login(username.text);
             }

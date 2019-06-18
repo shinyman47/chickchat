@@ -1,8 +1,6 @@
 import QtQuick 2.6
 import QtQuick.Window 2.2
 import client 1.0
-
-
 Window {
     id:root
     visible: true
@@ -30,6 +28,5 @@ Window {
         currentPage=home.createObject(root,{
                                           "username":name
                                       });
-
     }
 }
