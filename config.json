@@ -1,0 +1,8 @@
+{
+    "title": "HQC-Chat",
+    "identifier": "com.yourcompany.wizardEVAP.HQCChat",
+    "orientation": "auto",
+    "versioncode": 1,
+    "versionname": "1.0.0",
+    "stage": "test"
+}
