@@ -1,12 +1,16 @@
 #include "udpclient.h"
+#include <iostream>
 #include <FelgoApplication>
 #include <QUdpSocket>
 #include <QHostInfo>
 #include <QDateTime>
+#include <QList>
+#include <QTextStream>
 #include <QNetworkInterface>
 #include <QProcess>
-#include <iostream>
 #include <QDebug>
+#include <QMessageBox>
+#include <QJsonParseError>
 #include <QString>
 #include <QVector>
 #include <QFile>
@@ -47,46 +51,13 @@ void UdpClient::test()
 }*/
 void UdpClient::setName(QString nekename)
 {
-    u_name = nekename;
-    qDebug()<<"set";
+    this->u_name = nekename;
+    //qDebug()<<"set";
 
 }
-void UdpClient::saveNameToJson(QJsonValue nekename)
-{
-    QFile file;
-    if(nekename.isObject())
-    {
-        QJsonObject nameobj=nekename.toObject();
-        QString strname=nameobj.value("name").toString();
-        QString strPwd=nameobj.value("passwd").toString();
-    }
-    QJsonObject j;
-    j.insert("name",nekename);
-    QJsonDocument o;
-    o.setObject(j);
-    QTextStream(stdout)<<o.toJson();
-    QTextStream(stdout)<<o.toJson(QJsonDocument::Compact);
-    //u_name = nekename;
-    //qDebug()<<u_name<<"set";
-}
 
-void UdpClient::setPsword(QJsonValue password)
-{
-    if(password.isObject())
-    {
-        QJsonObject nameobj=password.toObject();
-        QString strname=nameobj.value("name").toString();
-        QString strPwd=nameobj.value("passwd").toString();
-    }
-    QJsonObject j;
-    j.insert("password",password);
-    QJsonDocument o;
-    o.setObject(j);
-    QTextStream(stdout)<<o.toJson();
-    QTextStream(stdout)<<o.toJson(QJsonDocument::Compact);
-    //u_name = nekename;
-    //qDebug()<<u_name<<"set";
-}
+
+
 /*void UdpClient::UsrEnter(QString usrName, QString ipAddr)
 {
     //UdpClient::sndMsg(UsrEnter);
@@ -102,18 +73,22 @@ void UdpClient::setPsword(QJsonValue password)
 }*/
 void UdpClient::sndMsg(MsgType type,QString msg, QString usrName, QString ipAddr)
 {
-    qDebug()<<u_name<<"test";
+    //qDebug()<<u_name<<"test";
     port = 2333;
     //qDebug()<<u_name;
     QByteArray data;
     QDataStream out(&data, QIODevice::WriteOnly);    
     out<<type;
-    //qDebug()<<getIP();
+
+    //QString usrname = "client";
+    //!!!!!!!!!!!!!!!usrName is not true
     switch (type) {
     case Msg:
         //if(){}
-        out << usrName << getIP() << msg;
-        qDebug()<<usrName<<ipAddr<<msg;
+        ipAddr = getIP().toString();
+        //qDebug()<<ipAddr
+        out << usrName << ipAddr << msg;
+
         udpSocket->writeDatagram(data, data.size(), QHostAddress::Broadcast, port);
 
         //send message ui->msgBrowser->verticalScrollBar()->setValue(ui->msgBrowser->verticalScrollBar()->maximum());
@@ -124,14 +99,18 @@ void UdpClient::sndMsg(MsgType type,QString msg, QString usrName, QString ipAddr
     case UsrLeft:
         break;
     case FileName:
-        out << usrName << msg;
+
+        out << usrName<< getIP()<< msg ;
         udpSocket->writeDatagram(data, data.size(),QHostAddress(ipAddr), port);
 
         break;
     case Refuse:
+        //qDebug()<<"start refuse";
+        //out << usrName<<msg<<ipAddr;
+        udpSocket->writeDatagram(data, data.size(),QHostAddress(ipAddr), port);
         break;
     }
-    port = 2333;
+
     //udpSocket->writeDatagram("0",QHostAddress::Broadcast, port);
     //udpSocket->writeDatagram(usr, usr.size(),QHostAddress::Broadcast, port);
     //udpSocket->writeDatagram(addrs,addrs.size(), QHostAddress::Broadcast, port);
@@ -167,8 +146,9 @@ void UdpClient::setFileName(const QString &value)
     qDebug()<<theFileName;
 }
 
-void UdpClient::acceptAndConnect(QString friendIPv4)
+void UdpClient::acceptAndConnect(QString ipAddr)
 {
+    qDebug()<<"usr accept file sending";
     bytesReceived=0;
     fileNameSize=0;
     totalBytes=0;
@@ -178,7 +158,7 @@ void UdpClient::acceptAndConnect(QString friendIPv4)
     tcpSocketRec=new QTcpSocket(this);
     connect(tcpSocketRec,SIGNAL(readyRead()),this,SLOT(recFile()));
     tcpSocketRec->abort();
-    tcpSocketRec->connectToHost(QHostAddress(friendIPv4),tcpPort);
+    tcpSocketRec->connectToHost(QHostAddress(ipAddr),tcpPort);
 //    tcpSocketRec->connectToHost(QHostAddress::LocalHost,tcpPort);
 }
 
@@ -190,6 +170,7 @@ void UdpClient::setFullPath(QString dir)
 
 void UdpClient::sendFile()
 {
+    qDebug()<<"start to open file";
     // send file's total size, filename
     tcpSocketSend=tcpServer->nextPendingConnection();
     connect(tcpSocketSend,SIGNAL(bytesWritten(qint64)),this,SLOT(SendContinueAndUpdateProgressBar(qint64)));
@@ -207,6 +188,7 @@ void UdpClient::sendFile()
     sendOut<<totalBytesToSend<<qint64(outBlock.size()-sizeof(qint64)*2);
     bytesToWrite=totalBytesToSend-tcpSocketSend->write(outBlock);
     outBlock.resize(0);
+    emit fileStatus("Success");
 }
 
 void UdpClient::SendContinueAndUpdateProgressBar(qint64 numBytes)
@@ -294,19 +276,21 @@ void UdpClient::processPendingDatagrams()
 
         int msgType;
         QString usrName,ipAddr,msg;
+        //QString fileUsrName,fileIpAddr,fileMsg;
         in >> msgType;
-        //qDebug()<<msgType<<usrName<<ipAddr<<msg;
+
 
         QString time = QDateTime::currentDateTime().toString("yyyy-MM-ddhh:mm:ss");
         std::string usr, addr, message;
 
         switch (msgType) {
         case Msg:
+
             in >> usrName >> ipAddr >> msg;
 
-            //qDebug()<<usrName<<ipAddr<<msg;
+            qDebug()<<usrName<<ipAddr<<msg;
 
-            emit signalMsg(usrName,msg,ipAddr);
+            emit signalMsg(usrName,ipAddr,msg);
             break;
         case UsrEnter:
             in >> usrName >> ipAddr;
@@ -319,34 +303,37 @@ void UdpClient::processPendingDatagrams()
            // usrLeft(usrName, time);
             break;
         case FileName:
-            qDebug()<<"i had received your filemessage!!";
-
-            in>>usrName;
-            /*if(usrName != u_name){
-                qDebug()<<usrName<<":NOT ME";
-                return;
-            }*/
-            in>>msg;
-            qDebug()<<"ready to send file";
-            emit fileCome(usrName,ipAddr,msg);
+            in >> usrName >> ipAddr >> msg;
+            //qDebug()<<"ready to send file";
+            //qDebug()<<usrName<<ipAddr<<msg<<"test";
+            emit signalFileCome(usrName,ipAddr,msg);
+            //qDebug()<<"i had received your filemessage!!";
             break;
         case Refuse:
+
+            emit fileStatus("Refuse");
             break;
         }
     }
 }
-QString UdpClient::getIP()
+//getter
+QHostAddress UdpClient::getIP()
 {
-    QList<QHostAddress> list = QNetworkInterface::allAddresses();
+   /* QList<QHostAddress> list = QNetworkInterface::allAddresses();
     foreach(QHostAddress addr, list){
         if(addr.protocol() == QAbstractSocket::IPv4Protocol)
             return addr.toString();
+
     }
-    return 0;
+    return 0;*/
+    foreach(const QHostAddress & hostAddress, QNetworkInterface::allAddresses())
+        if(hostAddress != QHostAddress::LocalHost && hostAddress.toIPv4Address())
+            return hostAddress;
+    return QHostAddress::LocalHost;
 }
 QJsonValue UdpClient::getUsr()
 {
-    return u_name;
+    return this-> u_name;
 
 }
 /*QString UdpClient::getMsg(QString msg)
@@ -356,6 +343,328 @@ QJsonValue UdpClient::getUsr()
     return msg;
 
 }*/
+//JSON
+
+void UdpClient::setInfo(QString name,QString password)
+{
+    if(!checkName(name))
+    {UdpClient u;
+    u.person.push_back(PersonInfo(name,password));
+    QJsonArray array;
+    QJsonObject root;
+    QJsonDocument docunment;
+    for(auto o=0;o<u.person.size();o++)
+   {
+      QJsonObject object;
+qDebug()<<u.person[o].getname();
+qDebug()<<u.person[o].getpassword();
+       object.insert("name",u.person[o].getname());
+        object.insert("password",u.person[o].getpassword());
+       array.append(object);
+    }
+    root.insert("user",array);
+    docunment.setObject(root);
+   QByteArray byte_array=docunment.toJson(QJsonDocument::Compact);
+   QString json_str(byte_array);
+QTextStream(stdout)<<json_str;
+    QFile file("./assets/data.json");
+    if(!file.open(QIODevice::Append|QIODevice::ReadWrite))
+      {
+        qDebug()<<"error";
+      }
+     QTextStream in(&file);
+       in<<json_str<<endl;
+    //u->userInfo.append(json_str);
+    file.close();//write data to data.json
+}
+    else {
+        qDebug()<<"already cunzai!";
+        changePassword(name,"hello");
+    }
+}
+
+
+QString UdpClient::getnname()
+{
+    QFile file("Data.txt");
+    if(!file.open(QIODevice::ReadOnly|QIODevice::Text))
+      {
+        qDebug()<<"open error";
+      }
+     QByteArray Data=file.readAll();
+     file.close();
+     QJsonParseError jsonError;
+     QJsonDocument jsonDoc(QJsonDocument::fromJson(Data,&jsonError));
+     if(jsonError.error!=QJsonParseError::NoError)
+     {
+         qDebug()<<"json error";
+     }
+     QJsonObject rootobject=jsonDoc.object();
+     QJsonObject user=rootobject.value("user").toObject();
+     qDebug()<<user["name"].toString();
+     return user["name"].toString();
+
+}
+
+bool UdpClient::checkInfo(QString nekname,QString password)
+{
+    QFile file1("./assets/data.json");
+  if(!file1.open(QIODevice::ReadOnly|QIODevice::Text))
+    {
+      qDebug()<<"error";
+    }
+ while(!file1.atEnd())
+ {
+   QByteArray line=file1.readLine();
+     QString str(line);
+QString json(str);
+  QJsonParseError jsonerror;
+  QJsonDocument doc = QJsonDocument::fromJson(json.toLatin1(), &jsonerror);
+  if (!doc.isNull() && jsonerror.error == QJsonParseError::NoError)
+  {
+      if(doc.isObject())
+      {
+          QJsonObject object = doc.object();
+          QStringList list = object.keys();
+          QJsonObject::iterator it = object.begin();
+          while(it != object.end())
+          {
+              switch(it.value().type())
+              {
+              case QJsonValue::String:
+              {
+                  qDebug() << "Type is string";
+                  QJsonArray sub = it.value().toArray();
+                  qDebug() << it.key() << "=" << it.value().toString();
+                  break;
+              }
+              case QJsonValue::Array:
+              {
+                  QJsonArray sub = it.value().toArray();
+                  QJsonObject objectt=sub.at(0).toObject();
+                  if(nekname==objectt["name"].toString()&&password==objectt["password"].toString())
+                   {
+                     qDebug()<<"succeed!";
+                  file1.close();//data.json
+                   return true;
+                  }break;
+              }
+              case QJsonValue::Bool:
+              {
+                  qDebug() << "Type is Bool";
+                  qDebug() << it.key() << "=" << it.value().toBool();
+                  break;
+              }
+              case QJsonValue::Double:
+              {
+                  qDebug() << "Type is Double";
+                  qDebug() << it.key() << "=" << it.value().toDouble();
+                  break;
+              }
+              case QJsonValue::Object:
+              {
+                  qDebug() << "Type is Object";
+                  qDebug() << it.key() << "=" << it.value().toObject();
+                  break;
+              }
+              case QJsonValue::Null:
+              {
+                  qDebug() << "Type is Null";
+                  qDebug() << it.key() << "= NULL" ;
+                  break;
+              }
+              case QJsonValue::Undefined:
+              {
+                  qDebug() << "Type is Undefined";
+                  break;
+              }
+              }
+              it++;
+          }
+      }
+  }
+ }
+ file1.close();//data.json
+ qDebug()<<"no you!";
+ return false;
+
+}
+bool UdpClient::checkName(QString nekname)
+{
+    QFile file1("./assets/data.json");
+  if(!file1.open(QIODevice::ReadOnly|QIODevice::Text))
+    {
+      qDebug()<<"error";
+    }
+ while(!file1.atEnd())
+ {
+   QByteArray line=file1.readLine();
+  QString str(line);
+    QString json(str);
+  QJsonParseError jsonerror;
+  QJsonDocument doc = QJsonDocument::fromJson(json.toLatin1(), &jsonerror);
+  if (!doc.isNull() && jsonerror.error == QJsonParseError::NoError)
+  {
+      if(doc.isObject())
+      {
+          QJsonObject object = doc.object();
+          QStringList list = object.keys();
+          QJsonObject::iterator it = object.begin();
+          while(it != object.end())
+          {
+              switch(it.value().type())
+              {
+              case QJsonValue::String:
+              {
+                  qDebug() << "Type is string";
+                  QJsonArray sub = it.value().toArray();
+                  qDebug() << it.key() << "=" << it.value().toString();
+                  break;
+              }
+              case QJsonValue::Array:
+              {
+                  QJsonArray sub = it.value().toArray();
+                  QJsonObject objectt=sub.at(0).toObject();
+                  if(nekname==objectt["name"].toString())//&&password==objectt["password"].toString())
+                   {
+                     qDebug()<<"succeed!";
+                  file1.close();//data.json
+                   return true;
+                  }break;
+              }
+              case QJsonValue::Bool:
+              {
+                  qDebug() << "Type is Bool";
+                  qDebug() << it.key() << "=" << it.value().toBool();
+                  break;
+              }
+              case QJsonValue::Double:
+              {
+                  qDebug() << "Type is Double";
+                  qDebug() << it.key() << "=" << it.value().toDouble();
+                  break;
+              }
+              case QJsonValue::Object:
+              {
+                  qDebug() << "Type is Object";
+                  qDebug() << it.key() << "=" << it.value().toObject();
+                  break;
+              }
+              case QJsonValue::Null:
+              {
+                  qDebug() << "Type is Null";
+                  qDebug() << it.key() << "= NULL" ;
+                  break;
+              }
+              case QJsonValue::Undefined:
+              {
+                  qDebug() << "Type is Undefined";
+                  break;
+              }
+              }
+              it++;
+          }
+      }
+  }
+ }
+ file1.close();//data.json
+ qDebug()<<"no you!";
+ return false;
+
+}
+
+bool UdpClient::changePassword(QString nekname,QString newpassword)
+{
+    QFile file1("./assets/data.json");
+  if(!file1.open(QIODevice::ReadWrite|QIODevice::Text))
+    {
+      qDebug()<<"error";
+    }
+ while(!file1.atEnd())
+ {
+   QByteArray line=file1.readLine();
+   QString str(line);
+   QString json(str);
+   qDebug()<<json.toLocal8Bit()<<endl;
+  QJsonParseError jsonerror;
+ auto const& doc = QJsonDocument::fromJson(json.toLatin1(), &jsonerror);
+  if (!doc.isNull() && jsonerror.error == QJsonParseError::NoError)
+  {
+      if(doc.isObject())
+      {
+          QJsonObject object = doc.object();
+          QStringList list = object.keys();
+          QJsonObject::iterator it = object.begin();
+          while(it != object.end())
+          {
+              switch(it.value().type())
+              {
+              case QJsonValue::String:
+              {
+                  qDebug() << "Type is string";
+                  QJsonArray sub = it.value().toArray();
+                  qDebug() << it.key() << "=" << it.value().toString();
+                  break;
+              }
+              case QJsonValue::Array:
+              {
+                  QJsonValueRef arrayref=object.find("user").value();
+                  QJsonArray sub = arrayref.toArray();
+                  QJsonArray::iterator it=sub.begin();
+                  QJsonValueRef element=it[0];
+                  QJsonObject objectt=element.toObject();
+                  if(nekname==objectt["name"].toString())
+                   {
+                      qDebug()<<"old password:"<< objectt["password"].toString();
+                      objectt.insert("password",newpassword);
+                      element=objectt;
+                      arrayref=sub;
+                      qDebug()<<"new password:"<< objectt["password"].toString();
+                     qDebug()<<"change succeed!";
+                  file1.close();//data.json
+                   return true;
+                  }break;
+              }
+              case QJsonValue::Bool:
+              {
+                  qDebug() << "Type is Bool";
+                  qDebug() << it.key() << "=" << it.value().toBool();
+                  break;
+              }
+              case QJsonValue::Double:
+              {
+                  qDebug() << "Type is Double";
+                  qDebug() << it.key() << "=" << it.value().toDouble();
+                  break;
+              }
+              case QJsonValue::Object:
+              {
+                  qDebug() << "Type is Object";
+                  qDebug() << it.key() << "=" << it.value().toObject();
+                  break;
+              }
+              case QJsonValue::Null:
+              {
+                  qDebug() << "Type is Null";
+                  qDebug() << it.key() << "= NULL" ;
+                  break;
+              }
+              case QJsonValue::Undefined:
+              {
+                  qDebug() << "Type is Undefined";
+                  break;
+              }
+              }
+              it++;
+          }
+      }
+  }
+ }
+ file1.close();//data.json
+ qDebug()<<"no you!";
+ return false;
+
+}
 
 
 
