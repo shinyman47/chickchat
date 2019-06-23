@@ -1,18 +1,29 @@
 #ifndef UDPCLIENT_H
 #define UDPCLIENT_H
-#include<QObject>
-#include<QUdpSocket>
-#include<QList>
-#include<FelgoApplication>
-#include<QJsonDocument>
-#include<QJsonArray>
-#include<QJsonObject>
-#include<QJsonValue>
-#include<QTcpServer>
-#include<QTcpSocket>
-//#include<QFile>
-#include<QString>
-//#include<string>
+#include <QObject>
+#include <QUdpSocket>
+#include <QList>
+#include <QVector>
+#include <FelgoApplication>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QVector>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QTcpServer>
+#include <QTcpSocket>
+#include <QString>
+class PersonInfo
+{
+private:
+    QString name;
+    QString password;
+public:
+    PersonInfo(const QString &name,QString password):name{name},password{password}{}
+    QString getname(){return name;}
+    QString getpassword(){return password;}
+};
+
 
 class UdpClient :public QObject
 {
@@ -26,8 +37,9 @@ public:
     Q_INVOKABLE void test();
     //Q_INVOKABLE void socketSetting();
     Q_INVOKABLE void setName(QString nekename);
-    Q_INVOKABLE void saveNameToJson(QJsonValue nekename);
-    Q_INVOKABLE void setPsword(QJsonValue password);
+    //Q_INVOKABLE void saveNameToJson(QJsonValue nekename);
+    //Q_INVOKABLE void setPsword(QJsonValue password);
+
     //Q_INVOKABLE void UsrEnter(QString usrName, QString ipAddr);
    // Q_INVOKABLE void usrLeft(QString usrName, QString time);
     Q_INVOKABLE void sndMsg(MsgType type,QString msg, QString usrName, QString ipAddr);
@@ -36,8 +48,23 @@ public:
     Q_INVOKABLE void setFileName(const QString &value);
     Q_INVOKABLE void acceptAndConnect(QString ipAddr);
     Q_INVOKABLE void setFullPath(QString dir);
+   // Q_INVOKABLE bool SaveInfo(SaveType savetype);
+    //Q_INVOKABLE void setInfo(QString name,QString password);
+
+   //JSON
+    Q_INVOKABLE bool changePassword(QString name,QString password);
+    Q_INVOKABLE bool checkInfo(QString nekename,QString password);
+    Q_INVOKABLE void setInfo(QString name,QString password);
+    //Q_INVOKABLE bool checkInfo(QString nekename,QString password);
+    Q_INVOKABLE bool checkName(QString nekename);
+   // Q_INVOKABLE bool CheckName(QString nekename);
+   // Q_INVOKABLE bool CheckPsword();
+
+    //Q_INVOKABLE void read(const QJsonObject& json);
+    Q_INVOKABLE QString getnname();
+    //Q_INVOKABLE void write(QJsonObject& json) const;
     //getter
-    Q_INVOKABLE QString getIP();
+    Q_INVOKABLE QHostAddress getIP();
     Q_INVOKABLE QJsonValue getUsr();
    // Q_INVOKABLE QString getMsg(QString msg);
 protected:
@@ -72,21 +99,26 @@ private:
     QString r_path;
     QFile* localFile;
     QByteArray inBlock;
+    QList<PersonInfo>person;
+    QJsonObject objectt;
 signals:
     //udp
+    //void buttonClose();
     void nameChanged();
     void signalEnter(QString usrName, QString ipAddr);
     void signalLeft(QString usrName, QString time);
     void signalMsg(QString usrName,QString ipAddr ,QString msg);
+
     //tcp
-    //tcp
-    void fileCome(QString friendName,QString ipAddr,QString filename);
+    void signalFileCome(QString usrName,QString ipAddr,QString msg);
     void fileStatus(QString status);
     void updateProgressBar(double value);
     void updateRecBar(double value);
     void updateChatView();
     void recSuccess();
     void friendExit(int index);
+    //JSON
+    void passwordWrong();
 private slots:
     void processPendingDatagrams();
     //tcp
